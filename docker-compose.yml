@@ -1,0 +1,36 @@
+version: '2'
+
+services:
+  drone-server:
+    image: drone/drone:0.5
+    ports:
+      - 8880:8000
+    # volumes:
+      # - ./drone:/var/lib/drone/
+    restart: always
+    env_file: ./.env
+    environment:
+      - DRONE_DATABASE_DRIVER=mysql
+      - DRONE_DATABASE_DATASOURCE=root:rootdronepw@tcp(db:3306)/drone?parseTime=true
+
+  drone-agent:
+    image: drone/drone:0.5
+    command: agent
+    restart: always
+    depends_on: [ drone-server ]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DRONE_SERVER=ws://drone-server:8000/ws/broker
+    env_file: ./.env
+  db:
+    image: mysql
+    expose:
+      - '3306'
+    volumes:
+      - $PWD/_dronedata:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootdronepw
+      - MYSQL_USER=drone
+      - MYSQL_DATABASE=drone
+      - MYSQL_PASSWORD=drone
